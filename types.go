@@ -15,7 +15,14 @@ type Provider struct {
 	IsPrimary		bool			`yaml:"primary"`
 	Capabilities	[]Capability	`yaml:"capabilities"`
 	Status			Status
+	Current			bool
 }
+
+type Capability string
+
+const (
+	CapProxyToggle	Capability = "proxy_toggle"
+)
 
 type Status string
 
@@ -23,10 +30,4 @@ const (
 	StatusOK		Status = "ok"
 	StatusBlocked	Status = "blocked"
 	StatusTimeout	Status = "timeout"
-)
-
-type Capability string
-
-const (
-	CapProxyToggle	Capability = "proxy_toggle"
 )
