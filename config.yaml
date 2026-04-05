@@ -1,6 +1,8 @@
 provider:
   - name: Cloudflare
     primary: true
-    domain: not yet
+    capabilities:
+      - proxy_toggle
 
+domain: here.com
 check_interval: 5m
