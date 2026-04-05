@@ -1,0 +1,6 @@
+provider:
+  - name: Cloudflare
+    primary: true
+    domain: not yet
+
+check_interval: 5m
