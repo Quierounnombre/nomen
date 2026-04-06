@@ -1,4 +1,4 @@
-package main
+package types
 
 import (
 	"time"
@@ -37,8 +37,8 @@ type BaseProbe struct {
 	Name			string
 	Status			Status
 	Current			bool
-	cmd_ch			chan Cmd
-	probe_ch		chan ProbeResponse
+	Cmd_ch			chan Cmd
+	Probe_ch		chan ProbeResponse
 	Capabilities	[]Capability
 }
 

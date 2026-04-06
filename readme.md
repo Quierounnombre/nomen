@@ -4,3 +4,6 @@ Features:
 -
 - Provedores soportados: Cloudflare.
 
+Necesito:
+-> Enviar cms simples a las probes.
+-> recivir resultados de estas y decidir en base a eso.

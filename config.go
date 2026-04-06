@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/goccy/go-yaml"
 	"os"
+	"nomen/types"
 	"log/slog"
 )
 
@@ -18,8 +19,8 @@ func get_file_content(name string) []byte {
 	return content
 }
 
-func extract_file_content(raw_yaml []byte) *Config {
-	var config		Config
+func extract_file_content(raw_yaml []byte) *types.Config {
+	var config		types.Config
 	var err			error
 
 	err = yaml.Unmarshal(raw_yaml, &config)
@@ -30,9 +31,9 @@ func extract_file_content(raw_yaml []byte) *Config {
 	return (&config)
 }
 
-func get_config_from_file_name(name string) *Config {
+func get_config_from_file_name(name string) *types.Config {
 	var raw_yaml	[]byte
-	var config		*Config
+	var config		*types.Config
 
 	raw_yaml = get_file_content(name)
 	config = extract_file_content(raw_yaml)
