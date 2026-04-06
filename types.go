@@ -4,6 +4,8 @@ import (
 	"time"
 )
 
+//-------------------------------------------------------------------------CONFIGS
+
 type Config struct {
 	Provider			[]Provider		`yaml:"provider"`
 	Domain				string			`yaml:"domain"`
@@ -12,10 +14,7 @@ type Config struct {
 
 type Provider struct {
 	Name			string			`yaml:"name"`
-	IsPrimary		bool			`yaml:"primary"`
 	Capabilities	[]Capability	`yaml:"capabilities"`
-	Status			Status
-	Current			bool
 }
 
 type Capability string
@@ -24,10 +23,35 @@ const (
 	CapProxyToggle	Capability = "proxy_toggle"
 )
 
+//-------------------------------------------------------------------------PROBES
+
 type Status string
 
 const (
 	StatusOK		Status = "ok"
 	StatusBlocked	Status = "blocked"
 	StatusTimeout	Status = "timeout"
+)
+
+type BaseProbe struct {
+	Name			string
+	Status			Status
+	Current			bool
+	cmd_ch			chan Cmd
+	probe_ch		chan ProbeResponse
+	Capabilities	[]Capability
+}
+
+type ProbeResponse struct {
+	Name			string
+	Status			Status
+}
+
+//-------------------------------------------------------------------------CMDs
+
+type Cmd string
+
+const (
+	ShutDown		Cmd = "shutdown"
+	TakeLeadership	Cmd = "leadership"
 )
