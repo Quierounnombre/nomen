@@ -4,6 +4,7 @@ import (
 	"nomen/types"
 	"nomen/probes"
 	"fmt"
+	"time"
 )
 
 func controler(config *types.Config) {
@@ -12,12 +13,13 @@ func controler(config *types.Config) {
 	cmd_ch := make(chan types.Cmd)
 	probe_ch := make(chan types.ProbeResponse)
 	probes.Init_probes(config, probe_ch, cmd_ch)
-	for true {
+	ticker := time.Tick(config.Probe_interval)
+	for {
 		select {
 		case probe_response = <-probe_ch:
 			fmt.Print("%v", probe_response)
-		default:
-			//
+		case <-ticker:
+			cmd_ch <-types.Probe
 		}
 	}
 }

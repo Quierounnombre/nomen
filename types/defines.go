@@ -4,4 +4,4 @@ import (
 )
 
 //Supported providers
-var D_SP = map[string]func(b *BaseProbe){}
+var D_SP = map[string]func(b *BaseProbe) {}

@@ -5,4 +5,4 @@ provider:
       - proxy_toggle
 
 domain: here.com
-check_interval: 5m
+probe_interval: 15s
