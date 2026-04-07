@@ -2,4 +2,7 @@ module nomen
 
 go 1.25.5
 
-require github.com/goccy/go-yaml v1.19.2
+require (
+	github.com/goccy/go-yaml v1.19.2
+	github.com/joho/godotenv v1.5.1
+)
