@@ -5,9 +5,13 @@ import (
 	"nomen/types"
 	"net/http"
 	"time"
+	"sync"
 )
 
-func Init_probes(config *types.Config, probe_ch chan types.ProbeResponse, cmd_ch chan types.Cmd) {
+func Init_probes(config *types.Config, probe_ch chan types.ProbeResponse) ([]chan types.Cmd, *sync.WaitGroup) {
+	var return_ch		[]chan types.Cmd
+	var wg				sync.WaitGroup
+
 	for i, _ := range config.Provider {
 		provider := config.Provider[i]
 		handler, ok := types.D_SP[provider.Name]
@@ -15,9 +19,16 @@ func Init_probes(config *types.Config, probe_ch chan types.ProbeResponse, cmd_ch
 			slog.Error("Provider not supported(yet), PR welcome!") 
 			continue
 		}
+		cmd_ch := make(chan types.Cmd)
+		return_ch = append(return_ch, cmd_ch)
 		base_probe := init_base_probe(&provider, probe_ch, cmd_ch)
-		go handler(base_probe)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			handler(base_probe)
+		}()
 	}
+	return return_ch, &wg
 }
 
 func init_base_probe(provider *types.Provider, probe_ch chan types.ProbeResponse, cmd_ch chan types.Cmd) *types.BaseProbe {

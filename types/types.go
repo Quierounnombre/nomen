@@ -22,6 +22,7 @@ type Capability string
 
 const (
 	CapProxyToggle	Capability = "proxy_toggle"
+	CapProxyOn		Capability = "proxy_on"
 )
 
 //-------------------------------------------------------------------------PROBES
@@ -32,6 +33,7 @@ const (
 	StatusOK		Status = "ok"
 	StatusBlocked	Status = "blocked"
 	StatusTimeout	Status = "timeout"
+	StatusError		Status = "error"
 )
 
 type BaseProbe struct {
