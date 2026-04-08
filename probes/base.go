@@ -15,12 +15,12 @@ func Init_probes(config *types.Config, probe_ch chan types.ProbeResponse, cmd_ch
 			slog.Error("Provider not supported(yet), PR welcome!") 
 			continue
 		}
-		base_probe := init_base_probe(&provider, probe_ch, cmd_ch, config.Domain)
+		base_probe := init_base_probe(&provider, probe_ch, cmd_ch)
 		go handler(base_probe)
 	}
 }
 
-func init_base_probe(provider *types.Provider, probe_ch chan types.ProbeResponse, cmd_ch chan types.Cmd, domain string) *types.BaseProbe {
+func init_base_probe(provider *types.Provider, probe_ch chan types.ProbeResponse, cmd_ch chan types.Cmd) *types.BaseProbe {
 	probe := new(types.BaseProbe)
 	probe.Name = provider.Name
 	probe.Status = types.StatusOK
@@ -28,7 +28,8 @@ func init_base_probe(provider *types.Provider, probe_ch chan types.ProbeResponse
 	probe.Cmd_ch = cmd_ch
 	probe.Probe_ch = probe_ch
 	probe.Capabilities = provider.Capabilities
-	probe.Domain = domain
+	probe.Domains = provider.Domains
+	probe.Time_per_probe = provider.Time_per_probe
 	return (probe)
 }
 

@@ -1,8 +1,11 @@
+probe_interval: 15s
+
 provider:
   - name: Cloudflare
-    primary: true
+    time_per_probe: 3s
     capabilities:
       - proxy_toggle
-
-domain: here.com
-probe_interval: 15s
+    domains:
+      - finza.finance
+      - app.finza.finance
+      - api.finza.finance
