@@ -14,7 +14,7 @@ type Cloudflare_probe struct {
 	base		*types.BaseProbe
 	token		string
 	region		string
-	records		map[string]string
+	record		string
 	proxy		bool
 }
 
@@ -28,9 +28,9 @@ func Cloudflare_init(b *types.BaseProbe) {
 		token: os.Getenv("CF_TOKEN"),
 		region: os.Getenv("CF_REGION"),
 		proxy: true,
-		records: make(map[string]string),
+		record: "",
 	}
-	c.obtain_records()
+	c.obtain_record()
 	c.loop()
 }
 
@@ -51,56 +51,52 @@ func (c *Cloudflare_probe)loop() {
 func (c *Cloudflare_probe)execute_probe() {
 	var resp types.ProbeResponse
 
-	for _, domain := range c.base.Domains {
-		result := basic_probe(domain, c.base.Time_per_probe)
-		if result {
-			resp = types.ProbeResponse{Name: c.base.Name, Status: types.StatusOK}
-		} else {
-			resp = types.ProbeResponse{Name: c.base.Name, Status: types.StatusBlocked}
-		}
-		c.base.Probe_ch <- resp
+	result := basic_probe(c.base.Domain, c.base.Time_per_probe)
+	if result {
+		resp = types.ProbeResponse{Name: c.base.Name, Status: types.StatusOK}
+	} else {
+		resp = types.ProbeResponse{Name: c.base.Name, Status: types.StatusBlocked}
 	}
+	c.base.Probe_ch <- resp
 }
 
-func (c *Cloudflare_probe)obtain_records() {
+func (c *Cloudflare_probe)obtain_record() {
 	var result struct {
 		Result []struct {
 			ID string `json:"id"`
 		} `json:"result"`
 	}
 
-	for _, domain := range c.base.Domains {
-		req, err := http.NewRequest("GET",
-			fmt.Sprintf("https://api.cloudflare.com/client/v4/zones/%s/dns_records?name=%s", c.region, domain),
-			nil,
-		)
-		if err != nil {
-			slog.Error("Creating Request", "err", err)
-			c.base.Probe_ch <- types.ProbeResponse{Name: c.base.Name, Status: types.StatusError}
-			return
-		}
-		req.Header.Set("Authorization", "Bearer " + c.token)
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			slog.Error("Request", "err", err)
-			c.base.Probe_ch <- types.ProbeResponse{Name: c.base.Name, Status: types.StatusError}
-			return
-		}
-		defer resp.Body.Close()
-		err = json.NewDecoder(resp.Body).Decode(&result)
-		if err != nil {
-			slog.Error("Decoding json", "err", err)
-			c.base.Probe_ch <- types.ProbeResponse{Name: c.base.Name, Status: types.StatusError}
-			return
-		}
-		if len(result.Result) > 0 {
-			c.records[domain] = result.Result[0].ID
-			slog.Info("RECORD", "domain", c.records[domain])
-		} else {
-			slog.Error("No record found", "domain", domain)
-			c.base.Probe_ch <- types.ProbeResponse{Name: c.base.Name, Status: types.StatusError}
-			return
-		}
+	req, err := http.NewRequest("GET",
+		fmt.Sprintf("https://api.cloudflare.com/client/v4/zones/%s/dns_records?name=%s", c.region, c.base.Domain),
+		nil,
+	)
+	if err != nil {
+		slog.Error("Creating Request", "err", err)
+		c.base.Probe_ch <- types.ProbeResponse{Name: c.base.Name, Status: types.StatusError}
+		return
+	}
+	req.Header.Set("Authorization", "Bearer " + c.token)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		slog.Error("Request", "err", err)
+		c.base.Probe_ch <- types.ProbeResponse{Name: c.base.Name, Status: types.StatusError}
+		return
+	}
+	defer resp.Body.Close()
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		slog.Error("Decoding json", "err", err)
+		c.base.Probe_ch <- types.ProbeResponse{Name: c.base.Name, Status: types.StatusError}
+		return
+	}
+	if len(result.Result) > 0 {
+		c.record = result.Result[0].ID
+		slog.Info("RECORD", "domaiñ", c.record)
+	} else {
+		slog.Error("No record found", "domain", c.base.Domain)
+		c.base.Probe_ch <- types.ProbeResponse{Name: c.base.Name, Status: types.StatusError}
+		return
 	}
 }
 

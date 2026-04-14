@@ -1,11 +1,24 @@
-probe_interval: 15s
+probe_interval: 15s # Time between checking the domain
 
-provider:
-  - name: Cloudflare
-    time_per_probe: 3s
-    capabilities:
-      - proxy_toggle
-    domains:
-      - finza.finance
-      - app.finza.finance
-      - api.finza.finance
+domains:
+  - name: finza.finance
+    providers:
+      - name: Cloudflare # Provider (make sure the name is well put)
+        time_per_probe: 3s # Time to wait for a response from a probe
+        capabilities: # Provider Capabilitys
+          - proxy_toggle # For cludflare this will toggle the proxy, and check if that is enough instead of just switch
+          - proxy_on # Set the proxy to be ON by default
+  - name: app.finza.finance
+    providers:
+      - name: Cloudflare # Provider (make sure the name is well put)
+        time_per_probe: 3s # Time to wait for a response from a probe
+        capabilities: # Provider Capabilitys
+          - proxy_toggle # For cludflare this will toggle the proxy, and check if that is enough instead of just switch
+          - proxy_on # Set the proxy to be ON by default
+  - name: api.finza.finance
+    providers:
+      - name: Cloudflare # Provider (make sure the name is well put)
+        time_per_probe: 3s # Time to wait for a response from a probe
+        capabilities: # Provider Capabilitys
+          - proxy_toggle # For cludflare this will toggle the proxy, and check if that is enough instead of just switch
+          - proxy_on # Set the proxy to be ON by default

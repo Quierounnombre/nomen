@@ -6,22 +6,27 @@ import (
 	"net/http"
 	"time"
 	"sync"
+	"os"
 )
 
-func Init_probes(config *types.Config, probe_ch chan types.ProbeResponse) ([]chan types.Cmd, *sync.WaitGroup) {
-	var return_ch		[]chan types.Cmd
+func Init_probes(config *types.Config, probe_ch chan types.ProbeResponse) (map[string]chan types.Cmd, *sync.WaitGroup) {
+	var return_ch		map[string]chan types.Cmd
 	var wg				sync.WaitGroup
 
-	for i, _ := range config.Provider {
-		provider := config.Provider[i]
-		handler, ok := types.D_SP[provider.Name]
-		if !ok {
-			slog.Error("Provider not supported(yet), PR welcome!") 
-			continue
+	return_ch = make(map[string]chan types.Cmd)
+	for i := range config.Domains {
+		domain := config.Domains[i]
+		for _, p := range domain.Providers {
+			_, ok := types.D_SP[p.Name]
+			if !ok {
+				slog.Error("Provider not supported", "provider", p.Name, "domain", domain.Name)
+				os.Exit(1)
+			}
 		}
+		handler := types.D_SP[domain.Providers[0].Name] //IF err, would have jumped early
 		cmd_ch := make(chan types.Cmd)
-		return_ch = append(return_ch, cmd_ch)
-		base_probe := init_base_probe(&provider, probe_ch, cmd_ch)
+		return_ch[domain.Name] = cmd_ch
+		base_probe := init_base_probe(domain.Name, &domain.Providers[0], probe_ch, cmd_ch)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -31,7 +36,7 @@ func Init_probes(config *types.Config, probe_ch chan types.ProbeResponse) ([]cha
 	return return_ch, &wg
 }
 
-func init_base_probe(provider *types.Provider, probe_ch chan types.ProbeResponse, cmd_ch chan types.Cmd) *types.BaseProbe {
+func init_base_probe(domain string, provider *types.Provider, probe_ch chan types.ProbeResponse, cmd_ch chan types.Cmd) *types.BaseProbe {
 	probe := new(types.BaseProbe)
 	probe.Name = provider.Name
 	probe.Status = types.StatusOK
@@ -39,7 +44,7 @@ func init_base_probe(provider *types.Provider, probe_ch chan types.ProbeResponse
 	probe.Cmd_ch = cmd_ch
 	probe.Probe_ch = probe_ch
 	probe.Capabilities = provider.Capabilities
-	probe.Domains = provider.Domains
+	probe.Domain = domain
 	probe.Time_per_probe = provider.Time_per_probe
 	return (probe)
 }

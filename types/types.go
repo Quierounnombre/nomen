@@ -7,14 +7,18 @@ import (
 //-------------------------------------------------------------------------CONFIGS
 
 type Config struct {
-	Provider			[]Provider		`yaml:"provider"`
+	Domains				[]Domains		`yaml:"domains"`
 	Probe_interval		time.Duration	`yaml:"probe_interval"`
+}
+
+type Domains struct {
+	Providers			[]Provider		`yaml:"providers"`
+	Name				string			`yaml:"name"`
 }
 
 type Provider struct {
 	Name			string			`yaml:"name"`
 	Capabilities	[]Capability	`yaml:"capabilities"`
-	Domains			[]string		`yaml:"domains"`
 	Time_per_probe	time.Duration	`yaml:"time_per_probe"`
 }
 
@@ -43,7 +47,7 @@ type BaseProbe struct {
 	Cmd_ch			chan Cmd
 	Probe_ch		chan ProbeResponse
 	Capabilities	[]Capability
-	Domains 		[]string
+	Domain			string
 	Time_per_probe	time.Duration
 }
 

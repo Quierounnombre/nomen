@@ -33,7 +33,7 @@ func controler(config *types.Config) {
 	}
 }
 
-func broadcast(cmd types.Cmd, cmds_ch []chan types.Cmd) {
+func broadcast(cmd types.Cmd, cmds_ch map[string]chan types.Cmd) {
 	for _, ch := range cmds_ch {
 		ch <- cmd
 	}
