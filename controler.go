@@ -31,7 +31,7 @@ func controler(config *types.Config) {
 		case probe_response = <-probe_ch:
 			switch probe_response.Status {
 			case types.StatusOK:
-				fmt.Printf("%v", probe_response)
+				fmt.Printf("%v\n", probe_response)
 			case types.StatusError:
 				broadcast(types.ShutDown, cmds_ch)
 				wg.Wait()

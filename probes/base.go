@@ -59,3 +59,19 @@ func basic_probe(domain string, timeout time.Duration) bool {
 	defer resp.Body.Close()
 	return true
 }
+
+//Check if the DNS resolve, only the DNS
+func (b *type.BaseProbe)Dns_resolve() bool {
+	r := &net.Resolver{
+		PreferGo: true
+	}
+	ctx := context.WithTimeout(context.Background(), b.Time_per_probe)
+	_, err := r.LookupHost(ctx, b.Domain)
+	if err != nil {
+		slog.Error("DNS failed:", "err", err)
+		return false
+	} else {
+		slog.Info("Resolved:", "domain", b.Domain)
+		return true
+	}
+}

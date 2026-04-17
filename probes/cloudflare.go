@@ -10,6 +10,16 @@ import (
 	"log/slog"
 )
 
+/*
+  DNS resolves?
+  No  → DNS-level block (nomen's core case)
+  Yes → TCP connects?
+          No  → CF down or network issue → hit CF status API
+          Yes → HTTP 200?
+                  No (403/RST) → ISP proxy block (LaLiga case)
+                  Yes → all good
+*/
+
 type Cloudflare_probe struct {
 	base		*types.BaseProbe
 	token		string
