@@ -14,30 +14,30 @@ func Init_probes(config *types.Config, probe_ch chan types.ProbeResponse) (map[s
 	var wg				sync.WaitGroup
 
 	return_ch = make(map[string]chan types.Cmd)
-	for i := range config.Domains {
-		domain := config.Domains[i]
+	for _, domain := range config.Domains {
 		for _, p := range domain.Providers {
 			_, ok := types.D_SP[p.Name]
 			if !ok {
 				slog.Error("Provider not supported", "provider", p.Name, "domain", domain.Name)
 				os.Exit(1)
 			}
+			handler := types.D_SP[p.Name]
+			cmd_ch := make(chan types.Cmd)
+			base_probe := init_base_probe(domain.Name, &domain.Providers[0], probe_ch, cmd_ch)
+			return_ch[base_probe.ID] = cmd_ch
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				handler(base_probe)
+			}()
 		}
-		handler := types.D_SP[domain.Providers[0].Name] //IF err, would have jumped early
-		cmd_ch := make(chan types.Cmd)
-		return_ch[domain.Name] = cmd_ch
-		base_probe := init_base_probe(domain.Name, &domain.Providers[0], probe_ch, cmd_ch)
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			handler(base_probe)
-		}()
 	}
 	return return_ch, &wg
 }
 
 func init_base_probe(domain string, provider *types.Provider, probe_ch chan types.ProbeResponse, cmd_ch chan types.Cmd) *types.BaseProbe {
 	probe := new(types.BaseProbe)
+	probe.ID = provider.Name + ":" + domain
 	probe.Name = provider.Name
 	probe.Status = types.StatusOK
 	probe.Current = false

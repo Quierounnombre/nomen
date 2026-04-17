@@ -9,11 +9,21 @@ import (
 	"os"
 )
 
+func calc_probe_ch_size(config *types.Config) int {
+	var l		int
+
+	l = 0
+	for _, d := range config.Domains {
+		l += len(d.Providers)
+	}
+	return l
+}
+
 func controler(config *types.Config) {
 	var probe_response		types.ProbeResponse
 	var wg					*sync.WaitGroup
 
-	probe_ch := make(chan types.ProbeResponse)
+	probe_ch := make(chan types.ProbeResponse, calc_probe_ch_size(config))
 	cmds_ch, wg := probes.Init_probes(config, probe_ch)
 	ticker := time.Tick(config.Probe_interval)
 	for {

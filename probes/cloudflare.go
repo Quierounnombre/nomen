@@ -53,9 +53,9 @@ func (c *Cloudflare_probe)execute_probe() {
 
 	result := basic_probe(c.base.Domain, c.base.Time_per_probe)
 	if result {
-		resp = types.ProbeResponse{Name: c.base.Name, Status: types.StatusOK}
+		resp = types.ProbeResponse{ID: c.base.ID, Status: types.StatusOK}
 	} else {
-		resp = types.ProbeResponse{Name: c.base.Name, Status: types.StatusBlocked}
+		resp = types.ProbeResponse{ID: c.base.ID, Status: types.StatusBlocked}
 	}
 	c.base.Probe_ch <- resp
 }
@@ -73,29 +73,29 @@ func (c *Cloudflare_probe)obtain_record() {
 	)
 	if err != nil {
 		slog.Error("Creating Request", "err", err)
-		c.base.Probe_ch <- types.ProbeResponse{Name: c.base.Name, Status: types.StatusError}
+		c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusError}
 		return
 	}
 	req.Header.Set("Authorization", "Bearer " + c.token)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		slog.Error("Request", "err", err)
-		c.base.Probe_ch <- types.ProbeResponse{Name: c.base.Name, Status: types.StatusError}
+		c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusError}
 		return
 	}
 	defer resp.Body.Close()
 	err = json.NewDecoder(resp.Body).Decode(&result)
 	if err != nil {
 		slog.Error("Decoding json", "err", err)
-		c.base.Probe_ch <- types.ProbeResponse{Name: c.base.Name, Status: types.StatusError}
+		c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusError}
 		return
 	}
 	if len(result.Result) > 0 {
 		c.record = result.Result[0].ID
-		slog.Info("RECORD", "domaiñ", c.record)
+		slog.Info("RECORD", "domain", c.record)
 	} else {
 		slog.Error("No record found", "domain", c.base.Domain)
-		c.base.Probe_ch <- types.ProbeResponse{Name: c.base.Name, Status: types.StatusError}
+		c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusError}
 		return
 	}
 }

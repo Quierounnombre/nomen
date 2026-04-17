@@ -41,6 +41,7 @@ const (
 )
 
 type BaseProbe struct {
+	ID				string
 	Name			string
 	Status			Status
 	Current			bool
@@ -52,7 +53,7 @@ type BaseProbe struct {
 }
 
 type ProbeResponse struct {
-	Name			string
+	ID				string
 	Status			Status
 }
 
