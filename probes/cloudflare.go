@@ -10,15 +10,6 @@ import (
 	"log/slog"
 )
 
-/*
-  DNS resolves?
-  No  → DNS-level block (nomen's core case)
-  Yes → TCP connects?
-          No  → CF down or network issue → hit CF status API
-          Yes → HTTP 200?
-                  No (403/RST) → ISP proxy block (LaLiga case)
-                  Yes → all good
-*/
 
 type Cloudflare_probe struct {
 	base		*types.BaseProbe
@@ -58,16 +49,38 @@ func (c *Cloudflare_probe)loop() {
 	}
 }
 
+/*
+  DNS resolves?
+  No  → DNS-level block (nomen's core case)
+  Yes → TCP connects?
+          No  → CF down or network issue → hit CF status API
+          Yes → HTTP 200?
+                  No (403/RST) → ISP proxy block (LaLiga case)
+                  Yes → all good
+*/
+
 func (c *Cloudflare_probe)execute_probe() {
 	var resp types.ProbeResponse
-
-	result := basic_probe(c.base.Domain, c.base.Time_per_probe)
-	if result {
-		resp = types.ProbeResponse{ID: c.base.ID, Status: types.StatusOK}
-	} else {
-		resp = types.ProbeResponse{ID: c.base.ID, Status: types.StatusBlocked}
+	ok, status := c.base.Http_check()
+	if ok {
+		switch status {
+			case http.StatusOK:
+				resp = types.ProbeResponse{ID: c.base.ID, Status: types.StatusOK}
+			case http.StatusForbidden:
+				resp = types.ProbeResponse{ID: c.base.ID, Status: types.StatusBlocked}
+		}
+		c.base.Probe_ch <- resp
+		return
 	}
-	c.base.Probe_ch <- resp
+
+	if err := c.base.Network_check(); err != nil {
+		if err := c.base.Dns_check(); err != nil {
+		// DNS broken
+		}
+		// DNS ok but TCP failed → CF down
+	}
+
+	// TCP ok but HTTP not 200 → ISP proxy block (403 etc)
 }
 
 func (c *Cloudflare_probe)obtain_record() {
