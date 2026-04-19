@@ -61,26 +61,34 @@ func (c *Cloudflare_probe)loop() {
 
 func (c *Cloudflare_probe)execute_probe() {
 	var resp types.ProbeResponse
-	ok, status := c.base.Http_check()
-	if ok {
-		switch status {
-			case http.StatusOK:
-				resp = types.ProbeResponse{ID: c.base.ID, Status: types.StatusOK}
-			case http.StatusForbidden:
-				resp = types.ProbeResponse{ID: c.base.ID, Status: types.StatusBlocked}
-		}
-		c.base.Probe_ch <- resp
-		return
-	}
 
-	if err := c.base.Network_check(); err != nil {
-		if err := c.base.Dns_check(); err != nil {
-		// DNS broken
+	err, status := Http_check(c.base)
+	if err != nil {
+		err = Network_check(c.base)
+		if err != nil {
+			err = Dns_check(c.base)
+			if err != nil {
+				resp = types.ProbeResponse{ID: c.base.ID, Status: types.StatusDnsDown}
+				c.base.Probe_ch <- resp
+				return
+			}
+			resp = types.ProbeResponse{ID: c.base.ID, Status: types.StatusNetwork}
+			c.base.Probe_ch <- resp
+			return
 		}
-		// DNS ok but TCP failed → CF down
 	}
-
-	// TCP ok but HTTP not 200 → ISP proxy block (403 etc)
+	switch status {
+		case http.StatusOK:
+			resp = types.ProbeResponse{ID: c.base.ID, Status: types.StatusOK}
+		case http.StatusUnauthorized:
+			resp = types.ProbeResponse{ID: c.base.ID, Status: types.StatusOK} // Error at auth level, so conectivity is ok
+		case http.StatusForbidden:
+			resp = types.ProbeResponse{ID: c.base.ID, Status: types.StatusBlocked}
+		default:
+			slog.Info("STATUS", "esta", status)
+			resp = types.ProbeResponse{ID: c.base.ID, Status: types.StatusUnknown}
+	}
+	c.base.Probe_ch <- resp
 }
 
 func (c *Cloudflare_probe)obtain_record() {

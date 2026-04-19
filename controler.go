@@ -36,6 +36,8 @@ func controler(config *types.Config) {
 				broadcast(types.ShutDown, cmds_ch)
 				wg.Wait()
 				os.Exit(1)
+			default:
+				fmt.Printf("%v\n", probe_response)
 			}
 		case <-ticker:
 			broadcast(types.Probe, cmds_ch)

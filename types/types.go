@@ -38,6 +38,9 @@ const (
 	StatusBlocked	Status = "blocked"
 	StatusTimeout	Status = "timeout"
 	StatusError		Status = "error"
+	StatusUnknown	Status = "Unknown"
+	StatusDnsDown	Status = "dns"
+	StatusNetwork	Status = "network"
 )
 
 type BaseProbe struct {

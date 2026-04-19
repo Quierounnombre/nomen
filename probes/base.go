@@ -4,9 +4,11 @@ import (
 	"log/slog"
 	"nomen/types"
 	"net/http"
+	"net"
 	"time"
 	"sync"
 	"os"
+	"context"
 )
 
 func Init_probes(config *types.Config, probe_ch chan types.ProbeResponse) (map[string]chan types.Cmd, *sync.WaitGroup) {
@@ -61,9 +63,9 @@ func basic_probe(domain string, timeout time.Duration) bool {
 }
 
 //Check if the DNS resolve, only the DNS
-func (b *types.BaseProbe)Dns_check() error {
+func Dns_check(b *types.BaseProbe) error {
 	r := &net.Resolver{
-		PreferGo: true
+		PreferGo: true,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), b.Time_per_probe)
 	defer cancel()
@@ -72,7 +74,7 @@ func (b *types.BaseProbe)Dns_check() error {
 }
 
 //Check if the domain is reachable and accepts connections
-func (b *types.BaseProbe)Network_check() error {
+func Network_check(b *types.BaseProbe) error {
 	conn, err := net.DialTimeout("tcp", b.Domain+":443", b.Time_per_probe)
 	if err == nil {
 		conn.Close()
@@ -81,12 +83,12 @@ func (b *types.BaseProbe)Network_check() error {
 }
 
 //Check if the service returns a correct status code
-func (b *types.BaseProbe)Http_check() (bool, int) {
+func Http_check(b *types.BaseProbe) (error, int) {
 	client := &http.Client{Timeout: b.Time_per_probe}
 	resp, err := client.Get("https://" + b.Domain)
 	if err != nil {
-		return false, 0
+		return err, 0
 	}
 	defer resp.Body.Close()
-	return true, resp.StatusCode
+	return err, resp.StatusCode
 }
