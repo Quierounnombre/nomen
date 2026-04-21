@@ -25,7 +25,7 @@ func controler(config *types.Config) {
 	var wg					*sync.WaitGroup
 
 	probe_ch := make(chan types.ProbeResponse, calc_probe_ch_size(config))
-	cmds_ch, wg := probes.Init_probes(config, probe_ch)
+	ds, wg := probes.Init_probes(config, probe_ch)
 	ticker := time.Tick(config.Probe_interval)
 	for {
 		select {
@@ -34,34 +34,32 @@ func controler(config *types.Config) {
 			case types.StatusOK:
 				fmt.Printf("%v\n", probe_response)
 			case types.StatusError:
-				broadcast(types.ShutDown, cmds_ch)
+				broadcast(types.ShutDown, ds)
 				wg.Wait()
 				os.Exit(1)
 			case types.StatusBlocked:
 				provider, _, _ := strings.Cut(probe_response.ID, ":")
 				if provider == "Cloudflare" {
-					cmds_ch[probe_response.ID] <- types.Toggle
+					send(types.Toggle, ds, probe_response.ID)
 				}
 			default:
 				fmt.Printf("%v\n", probe_response)
 			}
 		case <-ticker:
-			broadcast(types.Probe, cmds_ch)
+			broadcast(types.Probe, ds)
 		}
 	}
 }
 
-func broadcast(cmd types.Cmd, cmds_ch map[string]chan types.Cmd) {
-	for _, ch := range cmds_ch {
-		ch <- cmd
-	}
+func send(cmd types.Cmd, ds map[string]types.DomainState, ID string) {
+	domain, provider, _ := strings.Cut(ID, ":")
+	ds[domain].Providers[provider].Cmd_ch <- cmd
 }
 
-func filtered_broadcast(cmd types.Cmd, cmds_ch map[string]chan types.Cmd, provider string) {
-	for s, ch := range cmds_ch {
-		s_provider, _, _ := strings.Cut(s, ":")
-		if s_provider == provider {
-			ch <- cmd
+func broadcast(cmd types.Cmd, ds map[string]types.DomainState) {
+	for _, domain := range ds {
+		for _, provider := range domain.Providers {
+			provider.Cmd_ch <- cmd
 		}
 	}
 }

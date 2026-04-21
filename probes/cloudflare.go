@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	//"strings"
+	"strings"
 	"encoding/json"
 	"log/slog"
 )
@@ -141,16 +141,23 @@ func (c *Cloudflare_probe)toggle_proxy() {
 		strings.NewReader(body),
 	)
 	if err != nil {
+		slog.Error("Creating request", "err", err)
+		c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusError}
+		return
 	}
 	req.Header.Set("Authorization", "Bearer " + c.token)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return err
+		slog.Error("Problem doing request", "err", err)
+		c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusError}
+		return
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return fmt.Errorf("cloudflare: %d", resp.StatusCode)
+		slog.Error("Bad request status", "status", resp.StatusCode)
+		c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusError}
+		return
 	}
-	return nil
+	c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusOK}
 }
