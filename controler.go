@@ -3,6 +3,7 @@ package main
 import (
 	"nomen/types"
 	"nomen/probes"
+	"strings"
 	"fmt"
 	"time"
 	"sync"
@@ -36,6 +37,11 @@ func controler(config *types.Config) {
 				broadcast(types.ShutDown, cmds_ch)
 				wg.Wait()
 				os.Exit(1)
+			case types.StatusBlocked:
+				provider, _, _ := strings.Cut(probe_response.ID, ":")
+				if provider == "Cloudflare" {
+					cmds_ch[probe_response.ID] <- types.Toggle
+				}
 			default:
 				fmt.Printf("%v\n", probe_response)
 			}
@@ -48,5 +54,14 @@ func controler(config *types.Config) {
 func broadcast(cmd types.Cmd, cmds_ch map[string]chan types.Cmd) {
 	for _, ch := range cmds_ch {
 		ch <- cmd
+	}
+}
+
+func filtered_broadcast(cmd types.Cmd, cmds_ch map[string]chan types.Cmd, provider string) {
+	for s, ch := range cmds_ch {
+		s_provider, _, _ := strings.Cut(s, ":")
+		if s_provider == provider {
+			ch <- cmd
+		}
 	}
 }

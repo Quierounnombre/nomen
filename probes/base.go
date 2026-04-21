@@ -11,12 +11,16 @@ import (
 	"context"
 )
 
-func Init_probes(config *types.Config, probe_ch chan types.ProbeResponse) (map[string]chan types.Cmd, *sync.WaitGroup) {
-	var return_ch		map[string]chan types.Cmd
-	var wg				sync.WaitGroup
+//Need to return a map of domainsstates each one initialize with the data and probes
+func Init_probes(config *types.Config, probe_ch chan types.ProbeResponse) (map[string]types.DomainState, *sync.WaitGroup) {
+	var return_ds	map[string]types.DomainState
+	var wg			sync.WaitGroup
 
-	return_ch = make(map[string]chan types.Cmd)
+	return_ds = make(map[string]types.DomainState)
 	for _, domain := range config.Domains {
+		return_ds[domain.Name] = types.DomainState {
+			Providers: make(map[string]types.ProviderState),
+		}
 		for _, p := range domain.Providers {
 			_, ok := types.D_SP[p.Name]
 			if !ok {
@@ -25,8 +29,17 @@ func Init_probes(config *types.Config, probe_ch chan types.ProbeResponse) (map[s
 			}
 			handler := types.D_SP[p.Name]
 			cmd_ch := make(chan types.Cmd)
-			base_probe := init_base_probe(domain.Name, &domain.Providers[0], probe_ch, cmd_ch)
-			return_ch[base_probe.ID] = cmd_ch
+			base_probe := init_base_probe(domain.Name, &p, probe_ch, cmd_ch)
+			ds := return_ds[domain.Name]
+			ds.Providers[p.Name] = types.ProviderState {
+				Cmd_ch: cmd_ch,
+				Capabilities: p.Capabilities,
+				Status: types.StatusUnknown,
+			}
+			if return_ds[domain.Name].Current == "" {
+				ds.Current = p.Name
+			}
+			return_ds[domain.Name] = ds
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -34,18 +47,15 @@ func Init_probes(config *types.Config, probe_ch chan types.ProbeResponse) (map[s
 			}()
 		}
 	}
-	return return_ch, &wg
+	return return_ds, &wg
 }
 
 func init_base_probe(domain string, provider *types.Provider, probe_ch chan types.ProbeResponse, cmd_ch chan types.Cmd) *types.BaseProbe {
 	probe := new(types.BaseProbe)
 	probe.ID = provider.Name + ":" + domain
 	probe.Name = provider.Name
-	probe.Status = types.StatusOK
-	probe.Current = false
 	probe.Cmd_ch = cmd_ch
 	probe.Probe_ch = probe_ch
-	probe.Capabilities = provider.Capabilities
 	probe.Domain = domain
 	probe.Time_per_probe = provider.Time_per_probe
 	return (probe)

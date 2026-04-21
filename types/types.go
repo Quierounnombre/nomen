@@ -46,11 +46,8 @@ const (
 type BaseProbe struct {
 	ID				string
 	Name			string
-	Status			Status
-	Current			bool
 	Cmd_ch			chan Cmd
 	Probe_ch		chan ProbeResponse
-	Capabilities	[]Capability
 	Domain			string
 	Time_per_probe	time.Duration
 }
@@ -58,6 +55,17 @@ type BaseProbe struct {
 type ProbeResponse struct {
 	ID				string
 	Status			Status
+}
+
+type ProviderState struct {
+	Status			Status
+	Capabilities	[]Capability
+	Cmd_ch			chan Cmd
+}
+
+type DomainState struct {
+	Current			string
+	Providers		map[string]ProviderState
 }
 
 //-------------------------------------------------------------------------CMDs
@@ -68,4 +76,5 @@ const (
 	ShutDown		Cmd = "shutdown"
 	TakeLeadership	Cmd = "leadership"
 	Probe			Cmd = "probe"
+	Toggle			Cmd = "toggle"
 )

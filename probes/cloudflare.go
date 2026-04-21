@@ -44,6 +44,8 @@ func (c *Cloudflare_probe)loop() {
 					c.execute_probe()
 				case types.ShutDown:
 					return
+				case types.Toggle:
+					c.toggle_proxy()
 				}
 		}
 	}
@@ -131,17 +133,17 @@ func (c *Cloudflare_probe)obtain_record() {
 	}
 }
 
-/*
-func (c *Cloudflare_probe)toggle_proxy() error {
+func (c *Cloudflare_probe)toggle_proxy() {
 	c.proxy = !c.proxy
 	body := fmt.Sprintf(`{"proxied":%v}`, c.proxy)
-	req, _ := http.NewRequest("PATCH",
-		fmt.Sprintf("https://api.cloudflare.com/client/v4/zones/%s/dns_records/%s", c.region , c.records[0]),
+	req, err := http.NewRequest("PATCH",
+		fmt.Sprintf("https://api.cloudflare.com/client/v4/zones/%s/dns_records/%s", c.region , c.record),
 		strings.NewReader(body),
 	)
+	if err != nil {
+	}
 	req.Header.Set("Authorization", "Bearer " + c.token)
 	req.Header.Set("Content-Type", "application/json")
-
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
@@ -152,4 +154,3 @@ func (c *Cloudflare_probe)toggle_proxy() error {
 	}
 	return nil
 }
-*/
