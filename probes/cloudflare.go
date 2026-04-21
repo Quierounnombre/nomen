@@ -8,6 +8,7 @@ import (
 	"strings"
 	"encoding/json"
 	"log/slog"
+	"time"
 )
 
 
@@ -27,10 +28,11 @@ func Cloudflare_init(b *types.BaseProbe) {
 	c := Cloudflare_probe{
 		base: b,
 		token: os.Getenv("CF_TOKEN"),
-		region: os.Getenv("CF_REGION"),
+		region: "",
 		proxy: true,
 		record: "",
 	}
+	c.obtain_zone_ID()
 	c.obtain_record()
 	c.loop()
 }
@@ -110,7 +112,8 @@ func (c *Cloudflare_probe)obtain_record() {
 		return
 	}
 	req.Header.Set("Authorization", "Bearer " + c.token)
-	resp, err := http.DefaultClient.Do(req)
+	httpClient := &http.Client{Timeout: 3 * time.Second}
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		slog.Error("Request", "err", err)
 		c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusError}
@@ -132,6 +135,56 @@ func (c *Cloudflare_probe)obtain_record() {
 		return
 	}
 }
+
+func apexDomain(domain string) string {
+	parts := strings.Split(domain, ".")
+	if len(parts) <= 2 {
+		return domain
+	}
+	return strings.Join(parts[len(parts)-2:], ".")
+}
+
+func (c *Cloudflare_probe)obtain_zone_ID() {
+	var result struct {
+		Result []struct {
+			ID   string `json:"id"`
+			Name string `json:"name"`
+		} `json:"result"`
+	}
+
+	req, err := http.NewRequest("GET",
+		"https://api.cloudflare.com/client/v4/zones?name=" + apexDomain(c.base.Domain),
+		nil,
+	)
+	if err != nil {
+		slog.Error("Request", "err", err)
+		c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusError}
+		return
+	}
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Content-Type", "application/json")
+	httpClient := &http.Client{Timeout: 3 * time.Second}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		slog.Error("Problem doing request", "err", err)
+		c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusError}
+		return
+	}
+	defer resp.Body.Close()
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		slog.Error("Problem decoding request", "err", err)
+		c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusError}
+		return
+	}
+	if len(result.Result) == 0 {
+		slog.Error("no zone found", "domain", c.base.Domain)
+		c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusError}
+		return
+	}
+	c.region = result.Result[0].ID
+}
+
 
 func (c *Cloudflare_probe)toggle_proxy() {
 	c.proxy = !c.proxy
