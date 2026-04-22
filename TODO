@@ -5,3 +5,5 @@
 -> Check providers status
 -> Notificaciones por email
 
+-> Split cloudflare_dns and cloudflare proxyed
+-> Add fallback logic between those.

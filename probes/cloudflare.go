@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"time"
+	"net"
 )
 
 
@@ -212,5 +213,15 @@ func (c *Cloudflare_probe)toggle_proxy() {
 		c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusError}
 		return
 	}
+	c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusOK}
+}
+
+func (c *Cloudflare_probe)probe_CFIP() {
+	conn, err := net.DialTimeout("tcp", "1.1.1.1:443", c.base.Time_per_probe)
+	if err != nil {
+		c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusBlocked}
+		return
+	}
+	conn.Close()
 	c.base.Probe_ch <- types.ProbeResponse{ID: c.base.ID, Status: types.StatusOK}
 }

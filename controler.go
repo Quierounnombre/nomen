@@ -8,6 +8,7 @@ import (
 	"time"
 	"sync"
 	"os"
+	"log/slog"
 )
 
 func calc_probe_ch_size(config *types.Config) int {
@@ -20,6 +21,15 @@ func calc_probe_ch_size(config *types.Config) int {
 	return l
 }
 
+func select_next_healthy(domain types.DomainState) string {
+	for provider range domain.Providers {
+		if domain[provider].Status == StatusOK {
+			return provider
+		}
+	}
+	return ""
+}
+
 func controler(config *types.Config) {
 	var probe_response		types.ProbeResponse
 	var wg					*sync.WaitGroup
@@ -30,20 +40,24 @@ func controler(config *types.Config) {
 	for {
 		select {
 		case probe_response = <-probe_ch:
+			provider, domain, _ := strings.Cut(probe_response.ID, ":")
+			state := ds[domain]
 			switch probe_response.Status {
-			case types.StatusOK:
-				fmt.Printf("%v\n", probe_response)
-			case types.StatusError:
-				broadcast(types.ShutDown, ds)
-				wg.Wait()
-				os.Exit(1)
-			case types.StatusBlocked:
-				provider, _, _ := strings.Cut(probe_response.ID, ":")
-				if provider == "Cloudflare" {
-					send(types.Toggle, ds, probe_response.ID)
-				}
-			default:
-				fmt.Printf("%v\n", probe_response)
+				case types.StatusOK:
+					slog.Info("OK", "ID", probe_response.ID)
+				case types.StatusError:
+					broadcast(types.ShutDown, ds)
+					wg.Wait()
+					os.Exit(1)
+				case types.StatusBlocked:
+					next := select_next_healthy(state)
+					if state.Current == "Cloudflare" {
+					}
+					if provider == "Cloudflare" {
+						send(types.Toggle, ds, probe_response.ID)
+					}
+				default:
+					fmt.Printf("%v\n", probe_response)
 			}
 		case <-ticker:
 			broadcast(types.Probe, ds)
